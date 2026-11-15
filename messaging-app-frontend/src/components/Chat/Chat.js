@@ -1,21 +1,54 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { Avatar, IconButton } from "@mui/material";
+import { Avatar, IconButton, Menu, MenuItem } from "@mui/material";
+import ReplyIcon from "@mui/icons-material/Reply";
 
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
 import InsertEmoticonIcon from "@mui/icons-material/InsertEmoticon";
 import MicIcon from "@mui/icons-material/Mic";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 import axios from "../axios";
 import { useStateValue } from "../StateProvider";
 
 import "./Chat.css";
 
+// Formatar data e horário
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = new Date(timestamp);
+
+  if (isNaN(date.getTime())) return timestamp;
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Sao_Paulo",
+  });
+};
+
 const Chat = ({ messages = [], onMessagesUpdated }) => {
   const [seed, setSeed] = useState("");
   const [input, setInput] = useState("");
+
+  // Controle do menu de opções
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
+  // Controle da edição
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editedText, setEditedText] = useState("");
+
+  // Controle da resposta
+  const [replyingTo, setReplyingTo] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -33,9 +66,13 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
         name: user,
         timestamp: new Date().toUTCString(),
         received: true,
+
+        // ID da mensagem respondida
+        replyToId: replyingTo?._id || null,
       });
 
       setInput("");
+      setReplyingTo(null);
 
       if (onMessagesUpdated) {
         await onMessagesUpdated();
@@ -67,8 +104,16 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
     formData.append("image", file);
     formData.append("name", user);
 
+    // ID da mensagem respondida, caso exista
+    if (replyingTo) {
+      formData.append("replyToId", replyingTo._id);
+    }
+
     try {
       await axios.post("/messages/image", formData);
+
+      // Limpar a resposta selecionada
+      setReplyingTo(null);
 
       if (onMessagesUpdated) {
         await onMessagesUpdated();
@@ -84,6 +129,106 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
     }
   };
 
+  // Abrir menu de opções
+  const handleMenuOpen = (event, message) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedMessage(message);
+  };
+
+  // Fechar menu
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Selecionar mensagem para responder
+  const handleReply = () => {
+    if (!selectedMessage) return;
+
+    setReplyingTo(selectedMessage);
+    handleMenuClose();
+  };
+
+  // Iniciar edição
+  const handleEdit = () => {
+    if (!selectedMessage) return;
+
+    setEditingMessageId(selectedMessage._id);
+    setEditedText(selectedMessage.message);
+
+    handleMenuClose();
+  };
+
+  // Cancelar edição
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditedText("");
+  };
+
+  // Salvar mensagem editada
+  const saveEditedMessage = async (e) => {
+    e.preventDefault();
+
+    if (!editedText.trim()) {
+      alert("A mensagem não pode ficar vazia.");
+      return;
+    }
+
+    try {
+      await axios.put(`/messages/${editingMessageId}`, {
+        message: editedText,
+        name: user,
+      });
+
+      cancelEdit();
+
+      if (onMessagesUpdated) {
+        await onMessagesUpdated();
+      }
+    } catch (error) {
+      console.error("Erro ao editar mensagem:", error);
+
+      alert(
+        error.response?.data?.message || "Não foi possível editar a mensagem.",
+      );
+    }
+  };
+
+  // Excluir mensagem
+  const handleDelete = async () => {
+    if (!selectedMessage) return;
+
+    const messageId = selectedMessage._id;
+
+    const confirmed = window.confirm(
+      "Tem certeza de que deseja excluir esta mensagem?",
+    );
+
+    handleMenuClose();
+
+    if (!confirmed) return;
+
+    try {
+      await axios.delete(`/messages/${messageId}`, {
+        data: {
+          name: user,
+        },
+      });
+
+      setSelectedMessage(null);
+
+      if (onMessagesUpdated) {
+        await onMessagesUpdated();
+      }
+    } catch (error) {
+      console.error("Erro ao excluir mensagem:", error);
+
+      alert(
+        error.response?.data?.message || "Não foi possível excluir a mensagem.",
+      );
+    }
+  };
+
+  // Gerar avatar
   useEffect(() => {
     setSeed(Math.floor(Math.random() * 5000));
   }, []);
@@ -101,7 +246,12 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
         <div className="chat__headerInfo">
           <h3>Dev Help</h3>
 
-          <p>Visto em: {lastMessage?.timestamp || "Nenhuma mensagem ainda"}</p>
+          <p>
+            Visto em:{" "}
+            {lastMessage?.timestamp
+              ? formatTimestamp(lastMessage.timestamp)
+              : "Nenhuma mensagem ainda"}
+          </p>
         </div>
 
         <div className="chat__headerRight">
@@ -131,46 +281,182 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
 
       {/* Mensagens */}
       <div className="chat__body">
-        {messages.map((message) => (
-          <p
-            key={message._id}
-            className={`chat__message ${
-              message.name === user ? "chat__receiver" : ""
-            }`}
-          >
-            <span className="chat__name">{message.name}</span>
+        {messages.map((message) => {
+          const isOwnMessage = message.name === user;
+          const isEditing = editingMessageId === message._id;
 
-            {message.imageId ? (
-              <img
-                src={`http://localhost:9000/messages/image/${message.imageId}`}
-                alt="Imagem enviada"
-                className="chat__image"
-              />
-            ) : (
-              message.message
-            )}
+          return (
+            <div
+              key={message._id}
+              className={`chat__message ${
+                isOwnMessage ? "chat__receiver" : ""
+              }`}
+            >
+              <div className="chat__messageHeader">
+                <span className="chat__name">{message.name}</span>
 
-            <span className="chat__timestamp">{message.timestamp}</span>
-          </p>
-        ))}
+                {/* Menu de opções em todas as mensagens */}
+                <IconButton
+                  size="small"
+                  className="chat__messageMenuButton"
+                  onClick={(e) => handleMenuOpen(e, message)}
+                  aria-label="Opções da mensagem"
+                >
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              </div>
+
+              {/* Referência à mensagem respondida */}
+              {message.replyTo?.messageId && (
+                <div className="chat__replyReference">
+                  <span className="chat__replyReferenceName">
+                    {message.replyTo.name}
+                  </span>
+
+                  {message.replyTo.imageId ? (
+                    <div className="chat__replyReferenceContent">
+                      <ReplyIcon fontSize="small" />
+                      <span>Imagem</span>
+                    </div>
+                  ) : (
+                    <div className="chat__replyReferenceContent">
+                      <ReplyIcon fontSize="small" />
+                      <span>{message.replyTo.message || "Mensagem"}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Conteúdo da mensagem */}
+              {isEditing ? (
+                <form className="chat__editForm" onSubmit={saveEditedMessage}>
+                  <input
+                    type="text"
+                    value={editedText}
+                    onChange={(e) => setEditedText(e.target.value)}
+                    autoFocus
+                  />
+
+                  <div className="chat__editActions">
+                    <button type="submit">Salvar</button>
+
+                    <button type="button" onClick={cancelEdit}>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {message.imageId ? (
+                    <img
+                      src={`http://localhost:9000/messages/image/${message.imageId}`}
+                      alt="Imagem enviada"
+                      className="chat__image"
+                    />
+                  ) : (
+                    <span className="chat__messageText">{message.message}</span>
+                  )}
+                </>
+              )}
+
+              {/* Data e identificação de edição */}
+              <span className="chat__timestamp">
+                {message.edited && !isEditing ? "Editada • " : ""}
+                {formatTimestamp(message.timestamp)}
+              </span>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Menu de opções */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        {/* Responder aparece para todas as mensagens */}
+        <MenuItem onClick={handleReply}>
+          <ReplyIcon fontSize="small" sx={{ mr: 1 }} />
+          Responder
+        </MenuItem>
+
+        {/* Editar e excluir aparecem somente nas próprias mensagens */}
+        {selectedMessage?.name === user && (
+          <>
+            <MenuItem
+              onClick={handleEdit}
+              disabled={Boolean(selectedMessage?.imageId)}
+            >
+              <EditIcon fontSize="small" sx={{ mr: 1 }} />
+              Editar mensagem
+            </MenuItem>
+
+            <MenuItem onClick={handleDelete}>
+              <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+              Excluir mensagem
+            </MenuItem>
+          </>
+        )}
+      </Menu>
 
       {/* Rodapé */}
       <div className="chat__footer">
-        <InsertEmoticonIcon />
+        {/* Prévia da mensagem que será respondida */}
+        {replyingTo && (
+          <div className="chat__replyingPreview">
+            <div className="chat__replyingPreviewContent">
+              <span className="chat__replyingPreviewName">
+                Respondendo a {replyingTo.name}
+              </span>
 
-        <form onSubmit={sendMessage}>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Digite sua mensagem"
-            type="text"
-          />
+              {replyingTo.imageId ? (
+                <span className="chat__replyingPreviewText">
+                  <ReplyIcon fontSize="small" />
+                  Imagem
+                </span>
+              ) : (
+                <span className="chat__replyingPreviewText">
+                  {replyingTo.message || "Mensagem"}
+                </span>
+              )}
+            </div>
 
-          <button type="submit">Enviar</button>
-        </form>
+            <IconButton
+              size="small"
+              onClick={() => setReplyingTo(null)}
+              aria-label="Cancelar resposta"
+            >
+              <span>×</span>
+            </IconButton>
+          </div>
+        )}
 
-        <MicIcon />
+        {/* Campo de envio */}
+        <div className="chat__footerInput">
+          <InsertEmoticonIcon />
+
+          <form onSubmit={sendMessage}>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Digite sua mensagem"
+              type="text"
+            />
+
+            <button type="submit">Enviar</button>
+          </form>
+
+          <MicIcon />
+        </div>
       </div>
     </div>
   );

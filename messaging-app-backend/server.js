@@ -46,6 +46,38 @@ mongoose.connection.once("open", () => {
   console.log("GridFS conectado!");
 });
 
+// Buscar e preparar os dados da mensagem respondida
+const getReplyData = async (replyToId) => {
+  // Se não houver mensagem sendo respondida
+  if (!replyToId) {
+    return null;
+  }
+
+  // Validar o ID recebido
+  if (!mongoose.Types.ObjectId.isValid(replyToId)) {
+    const error = new Error("ID da mensagem respondida inválido");
+    error.status = 400;
+    throw error;
+  }
+
+  // Buscar a mensagem original
+  const originalMessage = await Messages.findById(replyToId);
+
+  if (!originalMessage) {
+    const error = new Error("Mensagem original não encontrada");
+    error.status = 404;
+    throw error;
+  }
+
+  // Retornar somente os dados necessários para a referência
+  return {
+    messageId: originalMessage._id.toString(),
+    name: originalMessage.name,
+    message: originalMessage.message || "",
+    imageId: originalMessage.imageId || null,
+  };
+};
+
 // API Endpoints
 
 app.get("/", (req, res) => {
@@ -55,12 +87,24 @@ app.get("/", (req, res) => {
 // Criar mensagem
 app.post("/messages/new", async (req, res) => {
   try {
-    const dbMessage = await Messages.create(req.body);
+    const { replyToId, ...messageData } = req.body;
+
+    // Preparar a referência da mensagem respondida
+    const replyTo = await getReplyData(replyToId);
+
+    // Criar a nova mensagem
+    const dbMessage = await Messages.create({
+      ...messageData,
+      replyTo,
+    });
 
     res.status(201).send(dbMessage);
   } catch (error) {
     console.error("Erro ao criar mensagem:", error);
-    res.status(500).send(error);
+
+    res.status(error.status || 500).send({
+      message: error.message || "Erro ao criar mensagem",
+    });
   }
 });
 
@@ -73,6 +117,125 @@ app.get("/messages/sync", async (req, res) => {
   } catch (error) {
     console.error("Erro ao buscar mensagens:", error);
     res.status(500).send(error);
+  }
+});
+
+// Editar mensagem
+app.put("/messages/:id", async (req, res) => {
+  try {
+    const { message, name } = req.body;
+
+    // Validar o conteúdo recebido
+    if (typeof message !== "string" || !message.trim()) {
+      return res.status(400).send({
+        message: "O conteúdo da mensagem não pode estar vazio",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).send({
+        message: "ID da mensagem inválido",
+      });
+    }
+
+    // Buscar a mensagem pelo ID
+    const dbMessage = await Messages.findById(req.params.id);
+
+    if (!dbMessage) {
+      return res.status(404).send({
+        message: "Mensagem não encontrada",
+      });
+    }
+
+    // Verificar se a mensagem pertence ao usuário
+    if (!name || dbMessage.name !== name) {
+      return res.status(403).send({
+        message: "Você não pode editar esta mensagem",
+      });
+    }
+
+    // Impedir a edição de mensagens que contenham imagens
+    if (dbMessage.imageId) {
+      return res.status(400).send({
+        message: "Não é possível editar mensagens com imagens",
+      });
+    }
+
+    // Atualizar os dados
+    dbMessage.message = message.trim();
+    dbMessage.edited = true;
+    dbMessage.editedAt = new Date().toUTCString();
+
+    // Salvar no MongoDB
+    const updatedMessage = await dbMessage.save();
+
+    res.status(200).send(updatedMessage);
+  } catch (error) {
+    console.error("Erro ao editar mensagem:", error);
+    res.status(500).send({
+      message: "Erro ao editar mensagem",
+    });
+  }
+});
+
+// Excluir mensagem
+app.delete("/messages/:id", async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).send({
+        message: "ID da mensagem inválido",
+      });
+    }
+
+    // Buscar a mensagem pelo ID
+    const dbMessage = await Messages.findById(req.params.id);
+
+    if (!dbMessage) {
+      return res.status(404).send({
+        message: "Mensagem não encontrada",
+      });
+    }
+
+    // Verificar se a mensagem pertence ao usuário
+    if (!name || dbMessage.name !== name) {
+      return res.status(403).send({
+        message: "Você não pode excluir esta mensagem",
+      });
+    }
+
+    // Se for uma mensagem com imagem, tentar remover o arquivo do GridFS
+    if (dbMessage.imageId) {
+      if (!gridFSBucket) {
+        return res.status(503).send({
+          message: "GridFS ainda não está pronto",
+        });
+      }
+
+      if (mongoose.Types.ObjectId.isValid(dbMessage.imageId)) {
+        try {
+          await gridFSBucket.delete(
+            new mongoose.Types.ObjectId(dbMessage.imageId),
+          );
+        } catch (imageError) {
+          console.warn("Não foi possível remover a imagem:", imageError);
+        }
+      }
+    }
+
+    // Excluir a mensagem do MongoDB
+    await Messages.deleteOne({ _id: dbMessage._id });
+
+    res.status(200).send({
+      message: "Mensagem excluída com sucesso",
+      id: dbMessage._id,
+    });
+  } catch (error) {
+    console.error("Erro ao excluir mensagem:", error);
+    res.status(500).send({
+      message: "Erro ao excluir mensagem",
+    });
   }
 });
 
@@ -154,18 +317,25 @@ app.post("/messages/image", upload.single("image"), async (req, res) => {
       Readable.from(req.file.buffer).pipe(uploadStream);
     });
 
+    // Preparar a referência da mensagem respondida
+    const replyTo = await getReplyData(req.body.replyToId);
+
+    // Criar a mensagem com imagem
     const dbMessage = await Messages.create({
       message: "",
       name: req.body.name,
       timestamp: new Date().toUTCString(),
       received: true,
       imageId: uploadStream.id.toString(),
+      replyTo,
     });
 
     res.status(201).send(dbMessage);
   } catch (error) {
     console.error("Erro ao enviar imagem:", error);
-    res.status(500).send(error);
+    res.status(error.status || 500).send({
+      message: error.message || "Erro ao enviar imagem",
+    });
   }
 });
 
