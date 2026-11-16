@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import EmojiPicker from "emoji-picker-react";
 
 import { Avatar, IconButton, Menu, MenuItem } from "@mui/material";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -38,6 +39,7 @@ const formatTimestamp = (timestamp) => {
 const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
   const [seed, setSeed] = useState("");
   const [input, setInput] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Controle do menu de opções
   const [anchorEl, setAnchorEl] = useState(null);
@@ -80,6 +82,10 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
     }
+  };
+
+  const handleEmojiClick = (emojiData) => {
+    setInput((currentInput) => currentInput + emojiData.emoji);
   };
 
   // Abrir seletor de arquivos
@@ -531,7 +537,23 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
             darkmode ? "chat__footerInput_darkMode" : ""
           }`}
         >
-          <InsertEmoticonIcon />
+          <button
+            type="button"
+            className="chat__emojiButton"
+            onClick={() => setShowEmojiPicker((current) => !current)}
+            aria-label="Abrir seletor de emojis"
+          >
+            <InsertEmoticonIcon />
+          </button>
+
+          {showEmojiPicker && (
+            <div className="chat__emojiPicker">
+              <EmojiPicker
+                onEmojiClick={handleEmojiClick}
+                theme={darkmode ? "dark" : "light"}
+              />
+            </div>
+          )}
 
           <form onSubmit={sendMessage}>
             <input

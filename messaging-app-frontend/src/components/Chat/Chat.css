@@ -268,6 +268,7 @@
   width: 100%;
   min-height: 62px;
   box-sizing: border-box;
+  position: relative;
 }
 
 /* Formulário de envio */
@@ -296,6 +297,36 @@
   padding: 10px;
   color: gray;
   cursor: pointer;
+}
+
+.chat__emojiButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: gray;
+  cursor: pointer;
+}
+
+.chat__emojiButton:hover {
+  color: #25d366;
+}
+
+.chat__emojiPicker {
+  position: absolute;
+  bottom: 62px;
+  left: 8px;
+  z-index: 2;
+}
+
+.chat__footerInput_darkMode .chat__emojiButton {
+  color: #8696a0;
+}
+
+.chat__footerInput_darkMode .chat__emojiButton:hover {
+  color: #25d366;
 }
 
 .chat_darkMode {
