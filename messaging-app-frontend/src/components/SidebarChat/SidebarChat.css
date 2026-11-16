@@ -19,3 +19,41 @@
 .sidebarChat__info {
   margin-left: 15px;
 }
+
+.sidebar_darkMode .sidebarChat {
+  color: #e9edef;
+  border-bottom-color: #2a3942;
+}
+
+.sidebar_darkMode .sidebar__chats {
+  background-color: #111b21;
+}
+
+.sidebar_darkMode .sidebarChat:hover {
+  background-color: #2a3942;
+}
+
+.sidebar_darkMode .sidebarChat__info > h2 {
+  color: #e9edef;
+}
+
+.sidebar_darkMode .sidebarChat__info > p {
+  color: #8696a0;
+}
+
+.sidebarChat_darkMode {
+  color: #e9edef;
+  border-bottom-color: #2a3942;
+}
+
+.sidebarChat_darkMode:hover {
+  background-color: #2a3942;
+}
+
+.sidebarChat__name_darkMode {
+  color: #e9edef;
+}
+
+.sidebarChat__timestamp_darkMode {
+  color: #8696a0;
+}

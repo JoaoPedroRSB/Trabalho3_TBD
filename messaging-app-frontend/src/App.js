@@ -10,6 +10,7 @@ import axios from "./components/axios";
 import { useStateValue } from "./components/StateProvider";
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
   const [messages, setMessages] = useState([]);
 
   const [{ user }] = useStateValue();
@@ -41,9 +42,17 @@ function App() {
         <Login />
       ) : (
         <div className="app__body">
-          <Sidebar messages={messages} />
+          <Sidebar
+            messages={messages}
+            darkmode={darkMode}
+            onDarkModeToggle={() => setDarkMode((current) => !current)}
+          />
 
-          <Chat messages={messages} onMessagesUpdated={fetchMessages} />
+          <Chat
+            messages={messages}
+            onMessagesUpdated={fetchMessages}
+            darkmode={darkMode}
+          />
         </div>
       )}
     </div>

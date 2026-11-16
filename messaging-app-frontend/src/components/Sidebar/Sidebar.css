@@ -30,8 +30,9 @@
   display: flex;
   align-items: center;
   background-color: #f6f6f6;
-  height: 39px;
+  height: 55px;
   padding: 10px;
+  box-sizing: border-box;
 }
 
 .sidebar__searchContainer {
@@ -41,6 +42,7 @@
   width: 100%;
   height: 35px;
   border-radius: 20px;
+  box-sizing: border-box;
 }
 
 .sidebar__searchContainer > .MuiSvgIcon-root {
@@ -49,9 +51,19 @@
 }
 
 .sidebar__searchContainer > input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
   border: none;
   outline-width: 0;
   margin-left: 10px;
+  background-color: transparent;
+  color: #546e7a;
+  font-size: 14px;
+}
+
+.sidebar__searchContainer > input::placeholder {
+  color: #78909c;
 }
 
 .sidebar__chats {
@@ -65,4 +77,49 @@
   padding: 20px;
   color: gray;
   text-align: center;
+}
+
+.sidebar_darkMode {
+  background-color: #202c33;
+  color: #e9edef;
+}
+
+.sidebar__header_darkMode {
+  border-right-color: #2a3942;
+}
+
+.sidebar__headerRight_darkMode {
+  color: #e9edef;
+}
+
+.sidebar__headerRight_darkMode .MuiSvgIcon-root {
+  color: #e9edef;
+}
+
+.sidebar__search_darkMode {
+  background-color: #202c33;
+}
+
+.sidebar__searchContainer_darkMode {
+  background-color: #2a3942;
+}
+
+.sidebar__searchContainer_darkMode > .MuiSvgIcon-root {
+  color: #8696a0;
+}
+
+.sidebar__searchContainer_darkMode > input {
+  color: #e9edef;
+}
+
+.sidebar__searchContainer_darkMode > input::placeholder {
+  color: #8696a0;
+}
+
+.sidebar__chats_darkMode {
+  background-color: #111b21;
+}
+
+.sidebar__empty_darkMode {
+  color: #8696a0;
 }

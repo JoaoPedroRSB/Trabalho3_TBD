@@ -35,7 +35,7 @@ const formatTimestamp = (timestamp) => {
   });
 };
 
-const Chat = ({ messages = [], onMessagesUpdated }) => {
+const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
   const [seed, setSeed] = useState("");
   const [input, setInput] = useState("");
 
@@ -236,14 +236,18 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
   const lastMessage = messages[messages.length - 1];
 
   return (
-    <div className="chat">
+    <div className={`chat ${darkmode ? "chat_darkMode" : ""}`}>
       {/* Cabeçalho */}
-      <div className="chat__header">
+      <div className={`chat__header ${darkmode ? "chat__header_darkMode" : ""}`}>
         <Avatar
           src={`https://api.dicebear.com/9.x/toonhead/svg?flip=true&seed=${seed}`}
         />
 
-        <div className="chat__headerInfo">
+        <div
+          className={`chat__headerInfo ${
+            darkmode ? "chat__headerInfo_darkMode" : ""
+          }`}
+        >
           <h3>Dev Help</h3>
 
           <p>
@@ -254,7 +258,11 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
           </p>
         </div>
 
-        <div className="chat__headerRight">
+        <div
+          className={`chat__headerRight ${
+            darkmode ? "chat__headerRight_darkMode" : ""
+          }`}
+        >
           <IconButton>
             <SearchIcon />
           </IconButton>
@@ -268,7 +276,7 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
             style={{ display: "none" }}
           />
 
-          {/* Botão de anexar */}
+          {/* Botão de anexar a */}
           <IconButton onClick={openFileSelector}>
             <AttachFileIcon />
           </IconButton>
@@ -279,8 +287,8 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
         </div>
       </div>
 
-      {/* Mensagens */}
-      <div className="chat__body">
+      {/* Mensagens  */}
+      <div className={`chat__body ${darkmode ? "chat__body_darkMode" : ""}`}>
         {messages.map((message) => {
           const isOwnMessage = message.name === user;
           const isEditing = editingMessageId === message._id;
@@ -290,15 +298,30 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
               key={message._id}
               className={`chat__message ${
                 isOwnMessage ? "chat__receiver" : ""
+              } ${darkmode ? "chat__message_darkMode" : ""} ${
+                isOwnMessage && darkmode ? "chat__receiver_darkMode" : ""
               }`}
             >
-              <div className="chat__messageHeader">
-                <span className="chat__name">{message.name}</span>
+              <div
+                className={`chat__messageHeader ${
+                  darkmode ? "chat__messageHeader_darkMode" : ""
+                }`}
+              >
+                <span
+                  className={`chat__name ${
+                    darkmode ? "chat__name_darkMode" : ""
+                  }`}
+                >
+                  {message.name}
+                </span>
 
                 {/* Menu de opções em todas as mensagens */}
+
                 <IconButton
                   size="small"
-                  className="chat__messageMenuButton"
+                  className={`chat__messageMenuButton ${
+                    darkmode ? "chat__messageMenuButton_darkMode" : ""
+                  }`}
                   onClick={(e) => handleMenuOpen(e, message)}
                   aria-label="Opções da mensagem"
                 >
@@ -308,18 +331,34 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
 
               {/* Referência à mensagem respondida */}
               {message.replyTo?.messageId && (
-                <div className="chat__replyReference">
-                  <span className="chat__replyReferenceName">
+                <div
+                  className={`chat__replyReference ${
+                    darkmode ? "chat__replyReference_darkMode" : ""
+                  }`}
+                >
+                  <span
+                    className={`chat__replyReferenceName ${
+                      darkmode ? "chat__replyReferenceName_darkMode" : ""
+                    }`}
+                  >
                     {message.replyTo.name}
                   </span>
 
                   {message.replyTo.imageId ? (
-                    <div className="chat__replyReferenceContent">
+                    <div
+                      className={`chat__replyReferenceContent ${
+                        darkmode ? "chat__replyReferenceContent_darkMode" : ""
+                      }`}
+                    >
                       <ReplyIcon fontSize="small" />
                       <span>Imagem</span>
                     </div>
                   ) : (
-                    <div className="chat__replyReferenceContent">
+                    <div
+                      className={`chat__replyReferenceContent ${
+                        darkmode ? "chat__replyReferenceContent_darkMode" : ""
+                      }`}
+                    >
                       <ReplyIcon fontSize="small" />
                       <span>{message.replyTo.message || "Mensagem"}</span>
                     </div>
@@ -329,7 +368,12 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
 
               {/* Conteúdo da mensagem */}
               {isEditing ? (
-                <form className="chat__editForm" onSubmit={saveEditedMessage}>
+                <form
+                  className={`chat__editForm ${
+                    darkmode ? "chat__editForm_darkMode" : ""
+                  }`}
+                  onSubmit={saveEditedMessage}
+                >
                   <input
                     type="text"
                     value={editedText}
@@ -337,7 +381,11 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
                     autoFocus
                   />
 
-                  <div className="chat__editActions">
+                  <div
+                    className={`chat__editActions ${
+                      darkmode ? "chat__editActions_darkMode" : ""
+                    }`}
+                  >
                     <button type="submit">Salvar</button>
 
                     <button type="button" onClick={cancelEdit}>
@@ -354,13 +402,23 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
                       className="chat__image"
                     />
                   ) : (
-                    <span className="chat__messageText">{message.message}</span>
+                    <span
+                      className={`chat__messageText ${
+                        darkmode ? "chat__messageText_darkMode" : ""
+                      }`}
+                    >
+                      {message.message}
+                    </span>
                   )}
                 </>
               )}
 
               {/* Data e identificação de edição */}
-              <span className="chat__timestamp">
+              <span
+                className={`chat__timestamp ${
+                  darkmode ? "chat__timestamp_darkMode" : ""
+                }`}
+              >
                 {message.edited && !isEditing ? "Editada • " : ""}
                 {formatTimestamp(message.timestamp)}
               </span>
@@ -374,6 +432,9 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
+        PaperProps={{
+          className: darkmode ? "chat__menu_darkMode" : "",
+        }}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
@@ -409,22 +470,46 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
       </Menu>
 
       {/* Rodapé */}
-      <div className="chat__footer">
+      <div
+        className={`chat__footer ${
+          darkmode ? "chat__footer_darkMode" : ""
+        }`}
+      >
         {/* Prévia da mensagem que será respondida */}
         {replyingTo && (
-          <div className="chat__replyingPreview">
-            <div className="chat__replyingPreviewContent">
-              <span className="chat__replyingPreviewName">
+          <div
+            className={`chat__replyingPreview ${
+              darkmode ? "chat__replyingPreview_darkMode" : ""
+            }`}
+          >
+            <div
+              className={`chat__replyingPreviewContent ${
+                darkmode ? "chat__replyingPreviewContent_darkMode" : ""
+              }`}
+            >
+              <span
+                className={`chat__replyingPreviewName ${
+                  darkmode ? "chat__replyingPreviewName_darkMode" : ""
+                }`}
+              >
                 Respondendo a {replyingTo.name}
               </span>
 
               {replyingTo.imageId ? (
-                <span className="chat__replyingPreviewText">
+                <span
+                  className={`chat__replyingPreviewText ${
+                    darkmode ? "chat__replyingPreviewText_darkMode" : ""
+                  }`}
+                >
                   <ReplyIcon fontSize="small" />
                   Imagem
                 </span>
               ) : (
-                <span className="chat__replyingPreviewText">
+                <span
+                  className={`chat__replyingPreviewText ${
+                    darkmode ? "chat__replyingPreviewText_darkMode" : ""
+                  }`}
+                >
                   {replyingTo.message || "Mensagem"}
                 </span>
               )}
@@ -441,7 +526,11 @@ const Chat = ({ messages = [], onMessagesUpdated }) => {
         )}
 
         {/* Campo de envio */}
-        <div className="chat__footerInput">
+        <div
+          className={`chat__footerInput ${
+            darkmode ? "chat__footerInput_darkMode" : ""
+          }`}
+        >
           <InsertEmoticonIcon />
 
           <form onSubmit={sendMessage}>

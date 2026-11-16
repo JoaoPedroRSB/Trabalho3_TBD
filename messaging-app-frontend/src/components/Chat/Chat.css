@@ -76,6 +76,10 @@
   font-size: x-small;
 }
 
+.chat__name_darkMode {
+  color: #e9edef;
+}
+
 /* Botão de opções da mensagem */
 .chat__messageMenuButton {
   padding: 2px !important;
@@ -292,6 +296,114 @@
   padding: 10px;
   color: gray;
   cursor: pointer;
+}
+
+.chat_darkMode {
+  background-color: #0b141a;
+  color: #e9edef;
+}
+
+.chat__header_darkMode {
+  border-bottom-color: #2a3942;
+}
+
+.chat__headerInfo_darkMode > h3,
+.chat__headerInfo_darkMode > p,
+.chat__headerRight_darkMode .MuiSvgIcon-root {
+  color: #e9edef;
+}
+
+.chat__headerInfo_darkMode > p {
+  color: #8696a0;
+}
+
+.chat__body_darkMode {
+  background-color: #0b141a;
+}
+
+.chat__message_darkMode {
+  background-color: #202c33;
+  color: #e9edef;
+}
+
+.chat__receiver_darkMode {
+  background-color: #005c4b;
+}
+
+.chat__messageHeader_darkMode .MuiSvgIcon-root,
+.chat__messageMenuButton_darkMode {
+  color: #e9edef !important;
+}
+
+.chat__messageMenuButton_darkMode:hover {
+  background-color: #2a3942 !important;
+}
+
+.chat__name_darkMode,
+.chat__messageText_darkMode {
+  color: #e9edef;
+}
+
+.chat__timestamp_darkMode {
+  color: #8696a0;
+}
+
+.chat__editForm_darkMode > input {
+  background-color: #2a3942;
+  color: #e9edef;
+  border-color: #8696a0;
+}
+
+.chat__editActions_darkMode > button[type="button"] {
+  background-color: #202c33;
+  color: #e9edef;
+}
+
+.chat__replyReference_darkMode {
+  background-color: #2a3942;
+}
+
+.chat__replyReferenceContent_darkMode {
+  color: #8696a0;
+}
+
+.chat__replyReferenceContent_darkMode .MuiSvgIcon-root {
+  color: #25d366;
+}
+
+.chat__replyReferenceName_darkMode,
+.chat__replyingPreviewName_darkMode {
+  color: #25d366;
+}
+
+.chat__replyingPreview_darkMode {
+  background-color: #2a3942;
+}
+
+.chat__replyingPreviewText_darkMode {
+  color: #8696a0;
+}
+
+.chat__footer_darkMode {
+  border-top-color: #202c33;
+}
+
+.chat__footerInput_darkMode > form > input {
+  background-color: #2a3942;
+  color: #e9edef;
+}
+
+.chat__footerInput_darkMode > .MuiSvgIcon-root {
+  color: #8696a0;
+}
+
+.chat__menu_darkMode {
+  background-color: #202c33;
+  color: #e9edef;
+}
+
+.chat__menu_darkMode .MuiMenuItem-root:hover {
+  background-color: #2a3942;
 }
 
 /* =========================================
