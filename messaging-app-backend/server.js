@@ -26,6 +26,8 @@ const upload = multer({
   },
 });
 
+const uploadAudio = multer({ storage: multer.memoryStorage() });
+
 // DB Config
 let gridFSBucket;
 
@@ -155,9 +157,9 @@ app.put("/messages/:id", async (req, res) => {
     }
 
     // Impedir a edição de mensagens que contenham imagens
-    if (dbMessage.imageId) {
+    if (dbMessage.imageId || dbMessage.audioId) {
       return res.status(400).send({
-        message: "Não é possível editar mensagens com imagens",
+        message: "Não é possível editar mensagens com imagens ou áudios",
       });
     }
 
@@ -175,6 +177,20 @@ app.put("/messages/:id", async (req, res) => {
     res.status(500).send({
       message: "Erro ao editar mensagem",
     });
+  }
+});
+
+app.delete("/messages", async (req, res) => {
+  try {
+    const files = await gridFSBucket.find().toArray();
+
+    await Promise.all(files.map((file) => gridFSBucket.delete(file._id)));
+    await Messages.deleteMany({});
+
+    res.status(200).send({ message: "Conversa limpa com sucesso" });
+  } catch (error) {
+    console.error("Erro ao limpar conversa:", error);
+    res.status(500).send({ message: "Erro ao limpar conversa" });
   }
 });
 
@@ -205,19 +221,19 @@ app.delete("/messages/:id", async (req, res) => {
       });
     }
 
+    const fileId = dbMessage.imageId || dbMessage.audioId;
+
     // Se for uma mensagem com imagem, tentar remover o arquivo do GridFS
-    if (dbMessage.imageId) {
+    if (fileId) {
       if (!gridFSBucket) {
         return res.status(503).send({
           message: "GridFS ainda não está pronto",
         });
       }
 
-      if (mongoose.Types.ObjectId.isValid(dbMessage.imageId)) {
+      if (mongoose.Types.ObjectId.isValid(fileId)) {
         try {
-          await gridFSBucket.delete(
-            new mongoose.Types.ObjectId(dbMessage.imageId),
-          );
+          await gridFSBucket.delete(new mongoose.Types.ObjectId(fileId));
         } catch (imageError) {
           console.warn("Não foi possível remover a imagem:", imageError);
         }
@@ -374,6 +390,42 @@ app.get("/messages/image/:id", async (req, res) => {
     console.error("Erro ao recuperar imagem:", error);
     res.status(500).send(error);
   }
+});
+
+app.post("/messages/audio", uploadAudio.single("audio"), async (req, res) => {
+  try {
+    const uploadStream = gridFSBucket.openUploadStream("audio", {
+      metadata: { contentType: req.file.mimetype },
+    });
+
+    await new Promise((resolve, reject) => {
+      uploadStream.once("finish", resolve);
+      uploadStream.once("error", reject);
+
+      Readable.from(req.file.buffer).pipe(uploadStream);
+    });
+
+    const dbMessage = await Messages.create({
+      message: "",
+      name: req.body.name,
+      timestamp: new Date().toUTCString(),
+      received: true,
+      audioId: uploadStream.id.toString(),
+    });
+
+    res.status(201).send(dbMessage);
+  } catch (error) {
+    console.error("Erro ao enviar áudio:", error);
+    res.status(500).send({ message: "Erro ao enviar áudio" });
+  }
+});
+
+app.get("/messages/audio/:id", (req, res) => {
+  gridFSBucket
+    .openDownloadStream(new mongoose.Types.ObjectId(req.params.id))
+    .on("file", (file) => res.set("Content-Type", file.metadata.contentType))
+    .on("error", () => res.status(404).end())
+    .pipe(res);
 });
 
 // Tratamento de erros do Multer

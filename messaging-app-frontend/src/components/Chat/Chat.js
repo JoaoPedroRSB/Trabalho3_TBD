@@ -11,6 +11,8 @@ import InsertEmoticonIcon from "@mui/icons-material/InsertEmoticon";
 import MicIcon from "@mui/icons-material/Mic";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import StopIcon from "@mui/icons-material/Stop";
 
 import axios from "../axios";
 import { useStateValue } from "../StateProvider";
@@ -52,7 +54,10 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
   // Controle da resposta
   const [replyingTo, setReplyingTo] = useState(null);
 
+  const [recording, setRecording] = useState(false);
+
   const fileInputRef = useRef(null);
+  const recorderRef = useRef(null);
 
   const [{ user }] = useStateValue();
 
@@ -135,6 +140,66 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
     }
   };
 
+  const toggleRecording = async () => {
+    if (recording) {
+      recorderRef.current.stop();
+      setRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+
+        const formData = new FormData();
+
+        formData.append("audio", new Blob(chunks, { type: recorder.mimeType }));
+        formData.append("name", user);
+
+        try {
+          await axios.post("/messages/audio", formData);
+
+          if (onMessagesUpdated) {
+            await onMessagesUpdated();
+          }
+        } catch (error) {
+          console.error("Erro ao enviar áudio:", error);
+          alert("Não foi possível enviar o áudio.");
+        }
+      };
+
+      recorder.start();
+      recorderRef.current = recorder;
+      setRecording(true);
+    } catch (error) {
+      console.error("Erro ao acessar o microfone:", error);
+      alert("Não foi possível acessar o microfone.");
+    }
+  };
+
+  const clearConversation = async () => {
+    if (!window.confirm("Tem certeza de que deseja apagar toda a conversa?")) {
+      return;
+    }
+
+    try {
+      await axios.delete("/messages");
+
+      if (onMessagesUpdated) {
+        await onMessagesUpdated();
+      }
+    } catch (error) {
+      console.error("Erro ao limpar conversa:", error);
+      alert("Não foi possível limpar a conversa.");
+    }
+  };
+
   // Abrir menu de opções
   const handleMenuOpen = (event, message) => {
     setAnchorEl(event.currentTarget);
@@ -206,7 +271,9 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
     const messageId = selectedMessage._id;
 
     const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir esta mensagem?",
+      selectedMessage.audioId
+        ? "Tem certeza de que deseja apagar este áudio?"
+        : "Tem certeza de que deseja excluir esta mensagem?",
     );
 
     handleMenuClose();
@@ -285,6 +352,10 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
           {/* Botão de anexar a */}
           <IconButton onClick={openFileSelector}>
             <AttachFileIcon />
+          </IconButton>
+
+          <IconButton onClick={clearConversation} aria-label="Limpar conversa">
+            <DeleteSweepIcon />
           </IconButton>
 
           <IconButton>
@@ -407,6 +478,12 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
                       alt="Imagem enviada"
                       className="chat__image"
                     />
+                  ) : message.audioId ? (
+                    <audio
+                      controls
+                      src={`http://localhost:9000/messages/audio/${message.audioId}`}
+                      className="chat__audio"
+                    />
                   ) : (
                     <span
                       className={`chat__messageText ${
@@ -461,7 +538,9 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
           <>
             <MenuItem
               onClick={handleEdit}
-              disabled={Boolean(selectedMessage?.imageId)}
+              disabled={Boolean(
+                selectedMessage?.imageId || selectedMessage?.audioId,
+              )}
             >
               <EditIcon fontSize="small" sx={{ mr: 1 }} />
               Editar mensagem
@@ -469,7 +548,7 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
 
             <MenuItem onClick={handleDelete}>
               <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-              Excluir mensagem
+              {selectedMessage?.audioId ? "Apagar áudio" : "Excluir mensagem"}
             </MenuItem>
           </>
         )}
@@ -566,7 +645,12 @@ const Chat = ({ messages = [], onMessagesUpdated, darkmode }) => {
             <button type="submit">Enviar</button>
           </form>
 
-          <MicIcon />
+          <IconButton
+            onClick={toggleRecording}
+            aria-label={recording ? "Parar e enviar áudio" : "Gravar áudio"}
+          >
+            {recording ? <StopIcon color="error" /> : <MicIcon />}
+          </IconButton>
         </div>
       </div>
     </div>

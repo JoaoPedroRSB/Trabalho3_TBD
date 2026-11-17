@@ -118,6 +118,12 @@
   margin-top: 5px;
 }
 
+.chat__audio {
+  display: block;
+  max-width: 100%;
+  margin-top: 5px;
+}
+
 /* Formulário de edição */
 .chat__editForm {
   display: flex;
@@ -289,7 +295,18 @@
 
 /* Botão enviar */
 .chat__footerInput > form > button {
-  display: none;
+  margin-left: 8px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 30px;
+  background-color: #25d366;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat__footerInput > form > button:hover {
+  opacity: 0.85;
 }
 
 /* Ícones do rodapé */
@@ -424,7 +441,8 @@
   color: #e9edef;
 }
 
-.chat__footerInput_darkMode > .MuiSvgIcon-root {
+.chat__footerInput_darkMode > .MuiSvgIcon-root,
+.chat__footerInput_darkMode > .MuiIconButton-root {
   color: #8696a0;
 }
 

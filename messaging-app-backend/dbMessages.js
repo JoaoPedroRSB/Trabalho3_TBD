@@ -6,6 +6,7 @@ const messagingSchema = mongoose.Schema({
   timestamp: String,
   received: Boolean,
   imageId: String,
+  audioId: String,
 
   edited: {
     type: Boolean,
